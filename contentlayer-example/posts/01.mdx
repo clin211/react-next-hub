@@ -1,0 +1,188 @@
+---
+title: 颜色计算
+date: 2023-12-14
+type: Blog
+publishedAt: '2023-12-14'
+summary: 'This is your first blog post.'
+---
+
+## 16进制转RGB
+
+```js
+function hexToRgb (hexValue) {
+     const rgx = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+     const hex = hexValue.replace(
+       rgx,
+       (m, r, g, b) => r + r + g + g + b + b
+     );
+     const rgb = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+     const r = parseInt(rgb[1], 16);
+     const g = parseInt(rgb[2], 16);
+     const b = parseInt(rgb[3], 16);
+     return `rgb(${r},${g},${b})`;
+}
+```
+
+## 根据一个16进制色值 判断是否是白色
+
+```js
+function isWhiteColor (hexcolor) {
+    const rgx = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+    const hex = hexcolor.replace(
+      rgx,
+      (m, r, g, b) => r + r + g + g + b + b
+    );
+    const rgb = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    const r = parseInt(rgb[1], 16);
+    const g = parseInt(rgb[2], 16);
+    const b = parseInt(rgb[3], 16);
+    let yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    console.log('yiq', yiq);
+    return (yiq >= 128);
+}
+```
+
+## 根据一个色值反向计算对应的色值
+
+```js
+function calcTextColorByBgColor (bgColor) {
+    const color = bgColor.replace('#', '');
+    const rgb = this.hexToRgb(color)
+      .replace('rgb(', '')
+      .replace(')', '')
+      .split(',');
+    const red = +rgb[0] * 0.2126;
+    const green = +rgb[1] * 0.7152;
+    const blue = +rgb[2] * 0.0722;
+    const lightness = (red + green + blue) / 255;
+    const textColor = `hsl(0, 0%, ${(lightness - 0.72) * -999999.99}%)`;
+    return textColor;
+}
+```
+
+## Common
+
+```js
+calcTextColorByBgColor (bgColor) {
+    const color = bgColor.replace('#', '');
+    const rgb = this.hexToRgb(color)
+      .replace('rgb(', '')
+      .replace(')', '')
+      .split(',');
+    const red = +rgb[0] * 0.2126;
+    const green = +rgb[1] * 0.7152;
+    const blue = +rgb[2] * 0.0722;
+    const lightness = (red + green + blue) / 255;
+    const textColor = `hsl(0, 0%, ${(lightness - 0.72) * -999999.99}%)`;
+    return textColor;
+}
+hexToRgb (hexValue) {
+    const { r, g, b } = this.fetchRGB(hexValue)
+    return `rgb(${r},${g},${b})`;
+}
+isWhiteColor (hexValue) {
+    const { r, g, b } = this.fetchRGB(hexValue);
+    let yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return (yiq >= 128);
+}
+fetchRGB (hexValue) {
+    const rgx = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+    const hex = hexValue.replace(
+      rgx,
+      (m, r, g, b) => r + r + g + g + b + b
+    );
+    const rgb = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    const r = parseInt(rgb[1], 16);
+    const g = parseInt(rgb[2], 16);
+    const b = parseInt(rgb[3], 16);
+    return { r, g, b };
+}
+```
+
+## 渐变色动态计算
+
+```js
+export function toHsl(r, g, b) {
+    r = r / 255;
+    g = g / 255;
+    b = b / 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const delta = max - min;
+    let h, s, l;
+
+    if (max === min) {
+        h = 0;
+    } else if (max === r) {
+        h = ((g - b) / delta) % 6;
+    } else if (max === g) {
+        h = (b - r) / delta + 2;
+    } else {
+        h = (r - g) / delta + 4;
+    }
+    h = Math.round(h * 60);
+    if (h < 0) h += 360;
+
+    (l = (max + min) / 2), (s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1)));
+
+    // 切换为百分比模式
+    s = +(s * 100).toFixed(1);
+    l = +(l * 100).toFixed(1);
+
+    return { h, s, l };
+}
+
+export function hexToRgb(hex) {
+    console.log('hex to rgb', hex);
+    if (!hex) return;
+    if (hex.startsWith('#')) hex = hex.slice(1);
+    console.log('handled hex', hex);
+    const bigint = parseInt(hex, 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return [r, g, b];
+}
+
+function calcLinearGradient(r, g, b) {
+    const red = r * 0.2125;
+    const green = g * 0.7154;
+    const blue = b * 0.0722;
+
+    const sum = red + green + blue;
+
+    const lightness = sum / 255;
+    const threshold = 0.72;
+
+    const textColor = `hsl(0 0% ${(lightness - threshold) * -99999}%)`;
+
+    const { h, s, l } = toHsl(r, g, b);
+    console.log('hsl', h, s, l);
+    const offsetH1 = h + 10;
+    const offsetH2 = h - 10;
+    const offsetS1 = s * 0.9;
+    const offsetS2 = s * 0.9;
+    const offsetL1 = `${Math.max(l - 25, 10)}%`; // 谁大就用谁
+    const offsetL2 = `${Math.min(l - 25, 90)}%`; // 谁小就用谁
+
+    const linearGradient = [
+        `hsl(${offsetH1} ${offsetS1} ${offsetL1})`,
+        `hsl(${offsetH2} ${offsetS2} ${offsetL2})`
+    ];
+
+    return { textColor, linearGradient };
+}
+
+export async function calcSpecialDealsLinearGradient(categoryId = 945): Array {
+    const source = await fetch(
+        `https://seagm-media.oss-ap-southeast-1.aliyuncs.com/material_hue/${categoryId}.jpg!hue`,
+        { headers: APIUtils.getHeader() }
+    ).then(res => res.json());
+    const [r, g, b] = hexToRgb(source.RGB);
+    console.log('r,g,b:', r, g, b);
+    const specialDealsColors = calcLinearGradient(r, g, b);
+    console.log('specialDealsColors', specialDealsColors);
+    return;
+}
+```

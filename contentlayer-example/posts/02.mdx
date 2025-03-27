@@ -1,0 +1,91 @@
+---
+title: 网页与 webview 通信
+date: 2023-12-14
+type: Blog
+publishedAt: '2023-12-14'
+summary: 'This is your first blog post.'
+---
+
+##  在react-native-webview中渲染uri网页时，处理连接和图片
+
+```javascript
+<script>
+        window.onload = function () {
+            let nodesA = document.getElementsByTagName('a');
+            for (let i = 0; i < nodesA.length; i++) {
+                nodesA[i].addEventListener("click", function (e) {
+                    if (e && e.preventDefault) e.preventDefault();
+                    else window.event.returnValue = false;
+                    let href = this.getAttribute('href');
+                    if (window.ReactNativeWebView) {
+                        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'nativeEvent', method: 'linkClick', href, height: window.innerHeight }));
+                    } else {
+                        window.postMessage(JSON.stringify({ type: 'nativeEvent', method: 'linkClick', href, height: window.innerHeight }));
+                    }
+                });
+            }
+            let nodesImg = document.getElementsByTagName('img');
+            for (let i = 0; i < nodesImg.length; i++) {
+                nodesImg[i].addEventListener("click", function (e) {
+                    let src = this.getAttribute('src');
+                    if (window.ReactNativeWebView) {
+                        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'nativeEvent', method: 'imgClick', src }));
+                    } else {
+                        window.postMessage(JSON.stringify({ type: 'nativeEvent', method: 'imgClick', src }));
+                    }
+                });
+            }
+        }
+    </script>
+```
+
+## 消息推送页面公用js代码
+
+```js
+<script>
+  const a = document.querySelectorAll('a')
+  let messageId = 1;
+  const isMobile = typeof window.orientation !== 'undefined' || /Mobi|Android|iPhone/i.test(navigator.userAgent) || !!('ontouchstart' in document.documentElement)
+  Array.from(a).map(item => {
+    	// 如果有data-on-click属性，且在移动端设备、seagm app中才删除href属性
+		if (item.dataset && item.dataset.onClick && window.seagmRN && isMobile) {
+			item.removeAttribute('href')
+		} else return
+    item.onclick = () => {
+      if (window.seagmRN) {
+        const actionType = item.dataset['onClick']
+        const con = item.dataset['url']
+        const requestCon = {
+          actionType: actionType,
+          messageId: messageId++,
+          data: {
+            url: con,
+            categoryId: con,
+            keyWords: item.dataset["keywords"],
+            code: item.dataset['code']
+          }
+        }
+        console.log(actionType, con, requestCon)
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(JSON.stringify(requestCon));
+        } else {
+          window.postMessage(JSON.stringify(requestCon), '*');
+        }
+        return true;
+      }
+    }
+  })
+</script>
+```
+
+## 是否在seagm app中
+
+```js
+// window.orientation属性用于获取屏幕的当前方向，只有移动设备才有这个属性，桌面设备会返回undefined
+//JS 通过navigator.userAgent属性拿到这个字符串，移动端设备才会包含mobi、android、iphone等关键字;
+// 手机浏览器的 DOM 元素可以通过ontouchstart属性，为touch事件指定监听函数。桌面设备没有这个属性
+const isMobile = typeof window.orientation !== 'undefined' || /Mobi|Android|iPhone/i.test(navigator.userAgent) || !!('ontouchstart' in document.documentElement)
+
+// 移动端设备、seagm app中
+console.log(window.seagmRN && isMobile)
+```

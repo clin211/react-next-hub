@@ -1,0 +1,13 @@
+/* src/app/components/theme-images/style.module.css */
+.imgDark {
+    display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    .imgLight {
+        display: none;
+    }
+    .imgDark {
+        display: unset;
+    }
+}
